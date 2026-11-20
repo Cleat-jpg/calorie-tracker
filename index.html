@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f6b3a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Calories">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Calorie tracker</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap">
+<style>
+:root{
+  --bg:#f3f6f1; --card:#ffffff; --ink:#18241b; --muted:#5d6b61; --line:#d5ded7; --accent:#1f6b3a; --accent-ink:#ffffff;
+  color-scheme:light;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--bg:#101812; --card:#18231b; --ink:#e8f0ea; --muted:#9bab9f; --line:#2b3a2f; --accent:#6fd08c; --accent-ink:#0c1a10; color-scheme:dark;}
+}
+:root[data-theme="dark"]{--bg:#101812; --card:#18231b; --ink:#e8f0ea; --muted:#9bab9f; --line:#2b3a2f; --accent:#6fd08c; --accent-ink:#0c1a10; color-scheme:dark;}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.4}
+main{max-width:560px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:1.6rem;font-weight:800;margin:0;letter-spacing:-.02em}
+h2{font-size:1rem;font-weight:600;margin:24px 0 8px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:8px}
+button{font:inherit;cursor:pointer}
+.btn{font-weight:600;color:var(--accent);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.datebar{display:flex;gap:8px;align-items:center;margin-bottom:16px}
+input,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px;min-width:0}
+.datebar input{flex:1;background:var(--card);text-align:center;border-radius:12px}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.meal{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;margin-bottom:12px}
+.meal.new{border:2px solid var(--accent)}
+.mhead{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.mname{flex:1;font-weight:800;font-size:1.05rem;background:transparent;border-color:transparent;padding:6px}
+.mname:hover,.mname:focus{border-color:var(--line)}
+.msub{font-weight:800;white-space:nowrap}
+.item{border-top:1px solid var(--line);padding:10px 0}
+.item select{width:100%}
+.line{display:flex;gap:8px;margin-top:8px;align-items:center}
+.line .amt{flex:1.2;width:100%}
+.line .unit{flex:.8}
+.kcal{margin-left:auto;text-align:right;font-weight:800;white-space:nowrap}
+.custom{margin-top:8px}
+.custom input{width:100%}
+.link{background:none;border:none;color:var(--muted);padding:4px 2px}
+.addfood{width:100%;background:none;border:none;color:var(--accent);font-weight:600;padding:10px;border-top:1px solid var(--line)}
+.addmeal{width:100%;font-weight:600;padding:12px;border-radius:12px;border:1.5px dashed var(--accent);background:none;color:var(--accent);margin:2px 0 16px}
+.total{background:var(--accent);color:var(--accent-ink);border-radius:16px;padding:16px 18px;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.total b{font-size:2.2rem;font-weight:800;letter-spacing:-.02em}
+.hist button{display:flex;justify-content:space-between;width:100%;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:6px}
+.hist button.cur{border:2px solid var(--accent)}
+.hist span:last-child{font-weight:600}
+.rem{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.rem .rn{flex:1}
+.remtools{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.empty,.note{color:var(--muted);font-size:.85rem}
+.note{margin-top:12px}
+#banner{position:fixed;left:12px;right:12px;top:calc(env(safe-area-inset-top,0px) + 10px);z-index:20;background:var(--accent);color:var(--accent-ink);border-radius:14px;padding:14px 16px;font-weight:600;display:none;justify-content:space-between;gap:10px}
+#banner button{background:none;border:none;color:inherit;font-weight:800}
+</style>
+</head>
+<body>
+<div id="banner" role="alert"><span id="btext"></span><button id="bclose" type="button" aria-label="Dismiss">✕</button></div>
+<main>
+  <div class="top">
+    <h1>Calorie tracker</h1>
+    <button class="btn" id="install" type="button" style="display:none">Install app</button>
+  </div>
+  <div class="datebar">
+    <button class="btn" id="prev" type="button" aria-label="Previous day">‹</button>
+    <input id="date" type="date" aria-label="Date">
+    <button class="btn" id="next" type="button" aria-label="Next day">›</button>
+    <button class="btn" id="today" type="button">Today</button>
+  </div>
+  <div id="meals"></div>
+  <button class="addmeal" id="addmeal" type="button">Add a meal</button>
+  <div class="total"><span id="totlabel">Total</span><span><b id="total">0</b> kcal</span></div>
+
+  <h2>Meal reminders</h2>
+  <div id="rems"></div>
+  <div class="remtools">
+    <button class="btn" id="addrem" type="button">Add reminder</button>
+    <button class="btn" id="notif" type="button">Turn on notifications</button>
+    <button class="btn" id="ics" type="button">Add to phone calendar</button>
+  </div>
+  <p class="note" id="remnote">Notifications show while this app is open. For an alarm that rings even when the app is closed, use “Add to phone calendar”: it creates a daily repeating event with an alert for each reminder.</p>
+
+  <h2>Recent days</h2>
+  <div class="hist" id="hist"></div>
+  <p class="note">Everything saves automatically. Values are averages per 100 g from standard nutrition tables. Raw and cooked weights differ, so choose the option that matches how you weighed the food.</p>
+</main>
+<script>
+var FOODS = [
+  ["Rice and grains", [["White rice, cooked",130],["Brown rice, cooked",123],["White rice, dry",365],["Pasta, cooked",158],["Oats, dry",389],["Bread, white",265]]],
+  ["Pork", [["Pork loin, cooked",200],["Pork loin, raw",143],["Pork chop, cooked",231],["Ground pork, cooked",297],["Ground pork, raw",263],["Pork belly",518],["Bacon, cooked",541],["Ham, sliced",145]]],
+  ["Chicken and turkey", [["Chicken breast, cooked",165],["Chicken breast, raw",120],["Chicken thigh, cooked",209],["Chicken thigh, raw",121],["Chicken wing, cooked",290],["Turkey breast, cooked",135]]],
+  ["Beef and lamb", [["Ground beef (80/20), cooked",254],["Beef steak, cooked",206],["Beef, lean, raw",143],["Lamb, cooked",294]]],
+  ["Fish and eggs", [["Salmon, cooked",206],["Tuna, canned",116],["Shrimp, cooked",99],["White fish, cooked",105],["Egg, boiled",155]]],
+  ["Vegetables, fruit and other", [["Potato, boiled",87],["Broccoli, cooked",35],["Beans, cooked",127],["Tofu",76],["Banana",89],["Cooking oil",884],["Butter",717]]]
+];
+var KCAL = {}, CUSTOM = "custom";
+FOODS.forEach(function(g){ g[1].forEach(function(f){ KCAL[f[0]] = f[1]; }); });
+var OPTS = FOODS.map(function(g){
+  return '<optgroup label="' + g[0] + '">' + g[1].map(function(f){ return '<option>' + f[0] + '</option>'; }).join("") + '</optgroup>';
+}).join("") + '<optgroup label="Other"><option value="custom">Custom food…</option></optgroup>';
+
+var $ = function(id){ return document.getElementById(id); };
+var log = {}, rem = [], doc = null, saveTimer = null, ui = [];
+var current, touched = false;
+
+function pad(n){ return (n < 10 ? "0" : "") + n; }
+function keyOf(d){ return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+function parseKey(k){ var p = k.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); }
+function shift(k, n){ var d = parseKey(k); d.setDate(d.getDate() + n); return keyOf(d); }
+function label(k){ return parseKey(k).toLocaleDateString(undefined, {weekday:"short", month:"short", day:"numeric"}); }
+function mk(tag, cls, html){ var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
+
+function normalize(){
+  Object.keys(log).forEach(function(k){
+    if (Array.isArray(log[k])) log[k] = {meals: [{n: "Meal 1", items: log[k]}]};
+  });
+}
+function day(k){
+  if (!log[k]) log[k] = {meals: [{n: "Meal 1", items: [{f: "White rice, cooked", u: "1"}]}]};
+  return log[k];
+}
+function kcalOf(e){
+  var per = e.f === CUSTOM ? parseFloat(e.c) : KCAL[e.f];
+  var g = parseFloat(e.a) * parseFloat(e.u || "1");
+  return (per > 0 && g > 0) ? per * g / 100 : 0;
+}
+function mealTotal(m){ return m.items.reduce(function(s, e){ return s + kcalOf(e); }, 0); }
+function dayTotal(k){
+  var d = log[k]; if (!d) return 0;
+  return d.meals.reduce(function(s, m){ return s + mealTotal(m); }, 0);
+}
+var fmt = function(n){ return Math.round(n).toLocaleString(); };
+
+function render(){
+  var box = $("meals"); box.innerHTML = ""; ui = [];
+  var d = day(current);
+  d.meals.forEach(function(m){
+    var sec = mk("section", "meal");
+    var head = mk("div", "mhead");
+    var nm = mk("input", "mname"); nm.value = m.n; nm.setAttribute("aria-label", "Meal name");
+    nm.addEventListener("input", function(){ m.n = nm.value; changed(); });
+    var sub = mk("span", "msub");
+    head.appendChild(nm); head.appendChild(sub);
+    if (d.meals.length > 1) {
+      var rm = mk("button", "link", "Remove"); rm.type = "button";
+      rm.addEventListener("click", function(){ d.meals.splice(d.meals.indexOf(m), 1); render(); changed(); });
+      head.appendChild(rm);
+    }
+    sec.appendChild(head);
+    var list = mk("div");
+    sec.appendChild(list);
+    function addItem(it){
+      var row = mk("div", "item");
+      row.innerHTML = '<select class="food" aria-label="Food">' + OPTS + '</select>' +
+        '<div class="custom"><input class="cal" type="number" inputmode="decimal" min="0" placeholder="kcal per 100 g" aria-label="Calories per 100 g"></div>' +
+        '<div class="line"><input class="amt" type="number" inputmode="decimal" min="0" placeholder="Amount" aria-label="Amount">' +
+        '<select class="unit" aria-label="Unit"><option value="1">g</option><option value="1000">kg</option></select>' +
+        '<span class="kcal"><span class="k">0</span> kcal</span><button class="link" type="button">Remove</button></div>';
+      var f = row.querySelector(".food"), c = row.querySelector(".cal"), a = row.querySelector(".amt"), u = row.querySelector(".unit");
+      f.value = it.f || "White rice, cooked"; c.value = it.c || ""; a.value = it.a || ""; u.value = it.u || "1";
+      f.addEventListener("change", function(){ it.f = f.value; changed(); });
+      c.addEventListener("input", function(){ it.c = c.value; changed(); });
+      a.addEventListener("input", function(){ it.a = a.value; changed(); });
+      u.addEventListener("change", function(){ it.u = u.value; changed(); });
+      row.querySelector(".link").addEventListener("click", function(){
+        m.items.splice(m.items.indexOf(it), 1);
+        if (!m.items.length) m.items.push({f: "White rice, cooked", u: "1"});
+        render(); changed();
+      });
+      ui.push({it: it, row: row});
+      list.appendChild(row);
+    }
+    m.items.forEach(addItem);
+    var af = mk("button", "addfood", "Add food to " + "this meal"); af.type = "button";
+    af.addEventListener("click", function(){ var it = {f: "White rice, cooked", u: "1"}; m.items.push(it); addItem(it); refresh(); });
+    sec.appendChild(af);
+    ui.push({meal: m, sub: sub});
+    box.appendChild(sec);
+  });
+  refresh();
+}
+
+function refresh(){
+  ui.forEach(function(x){
+    if (x.row) {
+      x.row.querySelector(".custom").style.display = x.it.f === CUSTOM ? "block" : "none";
+      x.row.querySelector(".k").textContent = fmt(kcalOf(x.it));
+    } else x.sub.textContent = fmt(mealTotal(x.meal)) + " kcal";
+  });
+  $("total").textContent = fmt(dayTotal(current));
+  $("totlabel").textContent = "Total for " + label(current);
+  var keys = Object.keys(log).filter(function(k){ return dayTotal(k) > 0; }).sort().reverse().slice(0, 7);
+  var h = $("hist"); h.innerHTML = "";
+  if (!keys.length) { h.innerHTML = '<p class="empty">Days you log will show up here.</p>'; return; }
+  keys.forEach(function(k){
+    var b = mk("button", k === current ? "cur" : ""); b.type = "button";
+    b.appendChild(mk("span", "", label(k))); b.appendChild(mk("span", "", fmt(dayTotal(k)) + " kcal"));
+    b.addEventListener("click", function(){ goTo(k); });
+    h.appendChild(b);
+  });
+}
+
+function goTo(k){ current = k; $("date").value = k; render(); }
+
+function persist(){
+  var clean = {};
+  Object.keys(log).forEach(function(k){ if (dayTotal(k) > 0 || (log[k] && log[k].meals.length > 1)) clean[k] = log[k]; });
+  try {
+    if (doc) doc.set({log: clean, rem: rem}).catch(function(){});
+    else localStorage.setItem("calorieTracker", JSON.stringify({log: clean, rem: rem}));
+  } catch (e) {}
+}
+function changed(){ touched = true; refresh(); clearTimeout(saveTimer); saveTimer = setTimeout(persist, 500); }
+
+/* Reminders */
+function renderRems(){
+  var box = $("rems"); box.innerHTML = "";
+  if (!rem.length) box.appendChild(mk("p", "empty", "No reminders yet. Add one for each meal."));
+  rem.forEach(function(r){
+    var row = mk("div", "rem");
+    var n = mk("input", "rn"); n.value = r.n; n.setAttribute("aria-label", "Reminder name");
+    var t = mk("input"); t.type = "time"; t.value = r.t; t.setAttribute("aria-label", "Time");
+    var x = mk("button", "link", "Remove"); x.type = "button";
+    n.addEventListener("input", function(){ r.n = n.value; changed(); });
+    t.addEventListener("change", function(){ r.t = t.value; changed(); });
+    x.addEventListener("click", function(){ rem.splice(rem.indexOf(r), 1); renderRems(); changed(); });
+    row.appendChild(n); row.appendChild(t); row.appendChild(x); box.appendChild(row);
+  });
+}
+function banner(text){
+  $("btext").textContent = text; $("banner").style.display = "flex";
+  setTimeout(function(){ $("banner").style.display = "none"; }, 20000);
+}
+async function notify(text){
+  banner(text);
+  try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {}
+  try {
+    if ("Notification" in window && Notification.permission === "granted") {
+      var reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration();
+      if (reg) reg.showNotification("Time to eat", {body: text, icon: "icon-192.png", tag: "meal-" + text});
+      else new Notification("Time to eat", {body: text});
+    }
+  } catch (e) {}
+}
+var fired = {};
+function checkRems(){
+  var now = new Date(), hm = pad(now.getHours()) + ":" + pad(now.getMinutes()), k = keyOf(now);
+  rem.forEach(function(r){
+    var id = k + r.t + r.n;
+    if (r.t === hm && !fired[id]) { fired[id] = 1; notify(r.n + " at " + r.t); }
+  });
+}
+setInterval(checkRems, 15000);
+document.addEventListener("visibilitychange", function(){ if (!document.hidden) checkRems(); });
+
+function makeIcs(){
+  var d = new Date(), base = d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate());
+  var L = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Calorie tracker//EN"];
+  rem.forEach(function(r, i){
+    if (!r.t) return;
+    var hh = r.t.slice(0, 2), mm = r.t.slice(3, 5);
+    var end = pad((+hh + (+mm + 15 >= 60 ? 1 : 0)) % 24) + pad((+mm + 15) % 60);
+    L.push("BEGIN:VEVENT", "UID:meal-" + i + "-" + base + "@calorie-tracker",
+      "DTSTAMP:" + base + "T000000Z", "DTSTART:" + base + "T" + hh + mm + "00", "DTEND:" + base + "T" + end + "00",
+      "RRULE:FREQ=DAILY", "SUMMARY:" + (r.n || "Time to eat").replace(/[,;\n]/g, " "),
+      "BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:Time to eat", "TRIGGER:PT0M", "END:VALARM", "END:VEVENT");
+  });
+  L.push("END:VCALENDAR");
+  return L.join("\r\n");
+}
+$("ics").addEventListener("click", async function(){
+  if (!rem.length) { banner("Add at least one reminder first."); return; }
+  var data = makeIcs();
+  try {
+    var dl = window.claude ? await claude.use("downloads") : null;
+    if (dl) { await dl.save({filename: "meal-reminders.ics", data: data}); return; }
+  } catch (e) { return; }
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([data], {type: "text/calendar"}));
+  a.download = "meal-reminders.ics";
+  document.body.appendChild(a); a.click(); a.remove();
+});
+$("notif").addEventListener("click", async function(){
+  if (!("Notification" in window)) { banner("This browser does not support notifications."); return; }
+  var p = await Notification.requestPermission();
+  $("notif").textContent = p === "granted" ? "Notifications on" : "Notifications blocked";
+});
+$("addrem").addEventListener("click", function(){
+  rem.push({n: "Meal " + (rem.length + 1), t: "12:00"}); renderRems(); changed();
+});
+$("bclose").addEventListener("click", function(){ $("banner").style.display = "none"; });
+
+/* Dates and buttons */
+$("date").addEventListener("change", function(){ if ($("date").value) goTo($("date").value); });
+$("prev").addEventListener("click", function(){ goTo(shift(current, -1)); });
+$("next").addEventListener("click", function(){ goTo(shift(current, 1)); });
+$("today").addEventListener("click", function(){ goTo(keyOf(new Date())); });
+$("addmeal").addEventListener("click", function(){
+  var d = day(current);
+  d.meals.push({n: "Meal " + (d.meals.length + 1), items: [{f: "White rice, cooked", u: "1"}]});
+  render(); changed();
+  var ms = document.querySelectorAll(".meal"), last = ms[ms.length - 1];
+  last.classList.add("new");
+  last.scrollIntoView({behavior: "smooth", block: "center"});
+  setTimeout(function(){ last.classList.remove("new"); }, 1800);
+});
+
+/* Install and offline */
+var deferred = null;
+window.addEventListener("beforeinstallprompt", function(e){ e.preventDefault(); deferred = e; $("install").style.display = "inline-block"; });
+$("install").addEventListener("click", async function(){
+  if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; $("install").style.display = "none";
+});
+window.addEventListener("appinstalled", function(){ $("install").style.display = "none"; });
+try { if ("serviceWorker" in navigator && /^https?:/.test(location.protocol)) navigator.serviceWorker.register("sw.js").catch(function(){}); } catch (e) {}
+if ("Notification" in window && Notification.permission === "granted") $("notif").textContent = "Notifications on";
+
+current = keyOf(new Date());
+goTo(current); renderRems();
+
+function adopt(L, R){
+  if (touched) { L[current] = log[current]; }
+  log = L;
+  if (!rem.length) rem = R || [];
+  normalize();
+  if (touched) refresh(); else goTo(current);
+  renderRems();
+}
+(async function(){
+  try {
+    if (window.claude) {
+      var db = await claude.use("db"), user = await claude.use("user");
+      if (db && user) {
+        var id = await user.id();
+        doc = db.doc("data/users/" + id + "/log");
+        var snap = await doc.get();
+        if (snap.exists) { var s = snap.data() || {}; adopt(s.log || {}, s.rem || []); }
+        return;
+      }
+    }
+  } catch (e) { doc = null; }
+  try {
+    var raw = localStorage.getItem("calorieTracker") || localStorage.getItem("calorieLog");
+    if (raw) { var p = JSON.parse(raw); if (p && p.log) adopt(p.log, p.rem || []); else if (p) adopt(p, []); }
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>
